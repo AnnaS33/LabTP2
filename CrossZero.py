@@ -17,11 +17,13 @@ class Btn():
         self.t=[]
         self.Again=None
         self.lable=None
+        self.lable2 = None
         self.Exit = None
 
 
     def click1(self,event,Button1):
         if(self.application.N==0):#Блокируем чтобы человек не жал несколько раз подряд
+            self.lable2['text'] = ''
             self.t.append(event)
             if(self.CrOrNo==1):
                 Button1.config(text="X")
@@ -35,45 +37,65 @@ class Btn():
 
             Z,I=self.Prov(self.zero)
             if(Z):
-                self.application.send(str(1)+str(I)+str(event))
+                self.application.send(str(1)+str(I)+str(event)+str(self.CrOrNo))
                 self.Win(str(1)+str(I))
             else:
                 C,I=self.Prov(self.cross)
                 if (C):
-                    self.application.send(str(2)+str(I)+str(event))
+                    self.application.send(str(2)+str(I)+str(event)+str(self.CrOrNo))
                     self.Win(str(2) + str(I))
-                if(I==-1):
-                    self.application.send(str(3)+str(0)+str(event))
-                    self.Win(str(3))
                 else:
-                    self.application.send(str(0)+str(0)+str(event))
+                    if(I==-1):
+                        self.application.send(str(3)+str(0)+str(event)+str(self.CrOrNo))
+                        self.Win(str(3))
+                    else:
+                        self.application.send(str(0)+str(0)+str(event)+str(self.CrOrNo))
 
     def click2(self):
-        self.application.send(str(0)+str(0)+'-')
+        self.application.send(str(0)+str(0)+'-'+str(self.CrOrNo))
 
     def show_message(self,message):
 
+        if (message.Load != None):
+            if (message.Load == 'No1'):
+                self.lable2['text'] = 'Увы, но ваш противник ещё не зашёл'
+            else:
+                if (message.Load == 'No2'):
+                    self.lable2['text'] = 'Такое сохранение уже есть'
+                else:
+                    self.lable2['text'] = 'Такого сохранения нет, попробуйте снова'
+            return False
         t=int(message.id+message.win+message.Number)
         if(t>9):
             S = str(t)
             self.t.append(int(S[2]))
-            if (self.CrOrNo == 0):#Просавляем ответ противника
-                self.Button_list[int(S[2])].config(text="X")
-                self.cross.append(int(S[2]))
-            else:
+            self.vspom(message,int(S[2]))
+            if (message.idCl == '0'):#Просавляем ответ противника
                 self.Button_list[int(S[2])].config(text="0")
                 self.zero.append(int(S[2]))
+            else:
+                self.Button_list[int(S[2])].config(text="X")
+                self.cross.append(int(S[2]))
             self.Button_list[int(S[2])].unbind("<Button-1>")
             self.Win(t)
         else:
             self.t.append(t)
-            if (self.CrOrNo == 0):#Проставляем ответ противника
-                self.Button_list[t].config(text="X")
-                self.cross.append(t)
-            else:
+            if (message.idCl == '0'):#Проставляем ответ противника
                 self.Button_list[t].config(text="0")
                 self.zero.append(t)
+            else:
+                self.Button_list[t].config(text="X")
+                self.cross.append(t)
             self.Button_list[t].unbind("<Button-1>")
+
+    def vspom(self,message,t):
+        if (message.idCl == '0'):  # Просавляем ответ противника
+            self.Button_list[t].config(text="0")
+            self.zero.append(t)
+        else:
+            self.Button_list[t].config(text="X")
+            self.cross.append(t)
+        self.Button_list[t].unbind("<Button-1>")
 
     def loop(self):
         self.window.mainloop()
@@ -86,6 +108,10 @@ class Btn():
         self.lable.config(bd=20)
         self.lable.pack()
 
+        self.lable2 = Label(text="", font=("Comic Sans MS", 12, "bold"))
+        #self.lable2.place(relx=.5, rely=.6)
+        self.lable2.pack()
+
         self.Again = Button(text="Again")
         self.Again.place(x=520, y=130, anchor="c")
         self.Again.bind("<Button-1>", lambda event : self.click2())
@@ -94,9 +120,38 @@ class Btn():
         self.Exit.place(x=520, y=300, anchor="c")
         self.Exit.bind("<Button-1>", lambda event: self.exit())
 
+        Save = Button(text="Save")
+        Save.place(x=520, y=170, anchor="c")
+        Save.bind("<Button-1>", lambda event: self.saves())
+
+        Load = Button(text="Load")
+        Load.place(x=520, y=210, anchor="c")
+        Load.bind("<Button-1>", lambda event: self.loads())
+
         self.window.title("Let's play")
         self.showw()
         return self.input_dialogs()
+
+    def saves(self):
+        self.window.lower()
+        self.application.NameSave = simpledialog.askstring("Name save", "Input name save", parent=self.window)
+        self.application.savem()
+        if self.application.NameSave is None:
+            return False
+        return True
+
+    def loads(self):
+        self.window.lower()
+        self.application.NameSave = simpledialog.askstring("Name save", "Input name save", parent=self.window)
+        if self.application.NameSave is None:
+            return False
+        n = simpledialog.askinteger("You", "Input 0 or 1", parent=self.window)
+        if ((n!=0) & (n!=1)):
+            print("ne to vveli")
+            return False
+        self.application.loadm(str(n))
+        self.lable2['text'] = ''
+        return True
 
     def showw(self):
         id=0
@@ -176,7 +231,7 @@ class Btn():
 
     def exit(self):
         self.window.destroy()
-        self.application.exit()
+        self.application.exit(str(self.CrOrNo))
 
 if __name__ == "__main__":
     Btn().startplay()

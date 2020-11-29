@@ -17,6 +17,8 @@ class Application(object):
         self.sock = None
         self.ui = CrossZero.Btn(self)
         self.N=None
+        self.NameSave=None
+
 
     def execute(self):
         if not self.ui.startplay():
@@ -52,6 +54,12 @@ class Application(object):
                     self.ui.show_message(message)
                     self.N =0
 
+    def savem(self):
+        self.sock.sendall(model.Message( quit=False, Number=0, Save=self.NameSave).marshal())
+
+    def loadm(self,n):
+        self.sock.sendall(model.Message( quit=False, Number=0, idCl=n,  Load=self.NameSave).marshal())
+
     def receive_all(self):
         buffer = ""
         while not buffer.endswith(model.END_CHARACTER):
@@ -61,17 +69,17 @@ class Application(object):
     def send(self, message):
         if len(message) == 0:
             return
-        message = model.Message(id=message[0],win=message[1],quit=False,Number=message[2])
+        message = model.Message(id=message[0],win=message[1],quit=False,Number=message[2],idCl=message[3])
         try:
             self.sock.sendall(message.marshal())
         except (ConnectionAbortedError, ConnectionResetError):
             if not self.closing:
                 print("Error")
 
-    def exit(self):
+    def exit(self,S):
         self.closing = True
         try:
-            self.sock.sendall(model.Message(id=None,win=None,quit=True,Number=0).marshal())
+            self.sock.sendall(model.Message(quit=True,Number=0,idCl=S).marshal())
         except (ConnectionResetError, ConnectionAbortedError, OSError):
             print("Could not connect to server")
         finally:
