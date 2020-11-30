@@ -22,7 +22,7 @@ class Btn():
 
 
     def click1(self,event,Button1):
-        if(self.application.N==0):#Блокируем чтобы человек не жал несколько раз подряд
+        if(self.application.N==0):#Блокируем чтобы человек не жал несколько раз подряд(t==1) & (k['idCl']==1)
             self.lable2['text'] = ''
             self.t.append(event)
             if(self.CrOrNo==1):
@@ -61,7 +61,7 @@ class Btn():
                 self.lable2['text'] = 'Увы, но ваш противник ещё не зашёл'
             else:
                 if (message.Load == 'No2'):
-                    self.lable2['text'] = 'Такое сохранение уже есть'
+                    self.lable2['text'] = 'Такое сохранение уже есть, либо вы ещё не сделали ни одного хода'
                 else:
                     self.lable2['text'] = 'Такого сохранения нет, попробуйте снова'
             return False
@@ -134,20 +134,20 @@ class Btn():
 
     def saves(self):
         self.window.lower()
-        self.application.NameSave = simpledialog.askstring("Name save", "Input name save", parent=self.window)
-        self.application.savem()
+        self.application.NameSave = simpledialog.askstring("Save", "Input the name of conservation", parent=self.window)
         if self.application.NameSave is None:
             return False
+        self.application.savem()
         return True
 
     def loads(self):
         self.window.lower()
-        self.application.NameSave = simpledialog.askstring("Name save", "Input name save", parent=self.window)
+        self.application.NameSave = simpledialog.askstring("Load", "Input the name of conservation", parent=self.window)
         if self.application.NameSave is None:
             return False
         n = simpledialog.askinteger("You", "Input 0 or 1", parent=self.window)
         if ((n!=0) & (n!=1)):
-            print("ne to vveli")
+            self.lable2['text']='Можно вводить только 0 и 1'
             return False
         self.application.loadm(str(n))
         self.lable2['text'] = ''

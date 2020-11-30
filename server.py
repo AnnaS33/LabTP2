@@ -56,42 +56,41 @@ class Server(object):
                 return
             if(message.Save!=None):
                 self.SaveIn(message,client)
-            else:
-                if(message.Load!=None):
-                    self.LoadS(message,client)
-                else:
-                    if (message.Number=='-'):
-                        self.obn()
-                        for client2 in self.clients:
-                            if(client==client2):
-                                mess = model.Message(quit=True, Number="-1").marshal()
-                                client2.sendall(mess)
-                            else:
-                                mess = model.Message(quit=True, Number="-2").marshal()
-                                client2.sendall(mess)
+            elif(message.Load!=None):
+                self.LoadS(message,client)
+            elif (message.Number=='-'):
+                self.obn()
+                for client2 in self.clients:
+                    if(client==client2):
+                        mess = model.Message(quit=True, Number="-1").marshal()
+                        client2.sendall(mess)
                     else:
-                        if message.quit:
-                            self.obn()
-                            client.close()
-                            self.clients.remove(client)
-                            print("The client disconnected")
-                            t=0
-                            for client2 in self.clients:
-                                mess = model.Message(quit=True, Number="-2").marshal()
-                                client2.sendall(mess)
-                                t=1
-                            if(t==1):
-                                self.N=1
-                            else:
-                                self.N=0
-                            return
-                        self.Save(mess)
-                        self.broadcast(message,client)
+                        mess = model.Message(quit=True, Number="-2").marshal()
+                        client2.sendall(mess)
+            else:
+                if message.quit:
+                    self.obn()
+                    client.close()
+                    self.clients.remove(client)
+                    print("The client disconnected")
+                    t=0
+                    for client2 in self.clients:
+                        mess = model.Message(quit=True, Number="-2").marshal()
+                        client2.sendall(mess)
+                        t=1
+                    if(t==1):
+                        self.N=1
+                    else:
+                        self.N=0
+                    return
+                self.Save(mess)
+                self.broadcast(message,client)
 
     def broadcast(self, message,client1):
         for client in self.clients:
             if (client1 != client):
                 client.sendall(message.marshal())
+
 
     def receive(self, client):
         buffer = ""
@@ -112,7 +111,7 @@ class Server(object):
 
     def SaveIn(self,message,client):
         if(os.path.exists(message.Save+".json")):
-            mess = model.Message(id='0', win='0', quit=True, Number=0, idCl='1', Load="No2").marshal()#Сделать просто метод который будет такое отправлять и менять там только значение Load
+            mess = model.Message(id='0', win='0', quit=True, Number=0, idCl='1', Load="No2").marshal()
             client.sendall(mess)
             return False
         try:
@@ -121,11 +120,13 @@ class Server(object):
                 if file_content:  # если нет
                     username = json.loads(file_content)
                 else:
-                    tt=1
-                    #обработка ошибки
+                    mess = model.Message(id='0', win='0', quit=True, Number=0, idCl='1',
+                                         Load="No2").marshal()
+                    client.sendall(mess)
+                    return False
         except FileNotFoundError:
             return None
-        except json.JSONDecodeError:  # Некорректное содержимое файла
+        except json.JSONDecodeError:
             return None
         with open(message.Save+".json", "w") as write_file:
             json.dump(username, write_file, indent=4)
@@ -149,15 +150,17 @@ class Server(object):
                 return None
             self.obn()
             if(message.idCl=='1'):
-                self.vspm(client,username,message,"-1","-2","1","0")
+                t=1
+                self.vspm(client,username,message,"-1","-2","1","0",t)
             else:
-                self.vspm(client, username, message, "-2", "-1", "0", "1")
+                t=0
+                self.vspm(client, username, message, "-2", "-1", "0", "1",t)
         else:
             mess = model.Message(id='0', win='0', quit=True, Number=0, idCl='1', Load="No").marshal()
             client.sendall(mess)
 
 
-    def vspm(self,client,username,message,str1,str2,str3,str4):
+    def vspm(self,client,username,message,str1,str2,str3,str4,t):
         for client2 in self.clients:
             if (client == client2):
                 mess = model.Message(quit=True, Number=str1).marshal()
@@ -168,18 +171,27 @@ class Server(object):
                 client2.sendall(mess)
                 cl2 = client2
         for i in range(len(username)):
-            time.sleep(0.015)
             k = username[i]
             if (k['idCl'] == message.idCl):
-                mess = model.Message(id='0', win='0', quit=True, Number=k['Number'], idCl=str3).marshal()
-                cl1.sendall(mess)
-                time.sleep(0.02)
+                mess = model.Message(id='0', quit=True, Number=k['Number'],win='0', idCl=str3).marshal()
                 cl2.sendall(mess)
+                time.sleep(0.3)
+                cl1.sendall(mess)
             else:
                 mess = model.Message(id='0', win='0', quit=True, Number=k['Number'], idCl=str4).marshal()
-                cl1.sendall(mess)
-                time.sleep(0.02)
                 cl2.sendall(mess)
+                time.sleep(0.3)
+                cl1.sendall(mess)
+        for i in range(len(username)):
+            k = username[i]
+            self.Save(k)
+
+        if (((t==1) & (k['idCl']=='1'))|((t==0) & (k['idCl']=='0'))):
+            mess = model.Message(quit=True, Number="-3").marshal()
+            cl1.sendall(mess)
+        else:
+            mess = model.Message(quit=True, Number="-3").marshal()
+            cl2.sendall(mess)
 
 
     def Save(self,message):
@@ -189,26 +201,23 @@ class Server(object):
             lists.append(message)
             try:
                 with open("JSONF.json") as file:
-                        # Читаем содержимое файла, обрезаем пробелы в начале и в конце
-                        # (тогда файл содержащий только пробелы или переносы строк
-                        #  будет эквивалентен пустому файлу)
-                        file_content = file.read().strip()
-
-                        # Проверяем, пустой ли файл
-                        if file_content:#если нет
-                            # Декодируем json
-                            username = json.loads(file_content)
-                            for i in range(len(lists)):
-                                username.append(lists[i])
-                        else:
-                            username=lists
-
+                    file_content = file.read().strip()
+                    # Проверяем, пустой ли файл
+                    if file_content:#если нет
+                        # Декодируем json
+                        username = json.loads(file_content)
+                        for i in range(len(lists)):
+                            username.append(lists[i])
+                    else:
+                        username=lists
             except FileNotFoundError:
                 return None
-            except json.JSONDecodeError:  # Некорректное содержимое файла
+            except json.JSONDecodeError:
                 return None
             with open("JSONF.json", "w") as write_file:
                 json.dump(username, write_file,indent=4)
+        else:
+            print("The message doesn't match the schema")
 
 
 if __name__ == "__main__":

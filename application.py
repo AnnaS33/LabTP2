@@ -45,14 +45,15 @@ class Application(object):
                 self.ui.Stop()
                 self.ui.CrOrNo=1
                 self.N =0
+            elif(message.Number == "-2"):
+                self.ui.Stop()
+                self.ui.CrOrNo = 0
+                self.N =1
+            elif(message.Number == "-3"):
+                self.N = 1
             else:
-                if (message.Number == "-2"):
-                    self.ui.Stop()
-                    self.ui.CrOrNo = 0
-                    self.N =1
-                else:
-                    self.ui.show_message(message)
-                    self.N =0
+                self.ui.show_message(message)
+                self.N =0
 
     def savem(self):
         self.sock.sendall(model.Message( quit=False, Number=0, Save=self.NameSave).marshal())
